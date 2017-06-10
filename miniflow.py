@@ -1,11 +1,11 @@
 """
-Modify Linear#forward so that it linearly transforms
-input matrices, weights matrices and a bias vector to
-an output.
+Fix the Sigmoid class so that it computes the sigmoid function
+on the forward pass!
+
+Scroll down to get started.
 """
 
 import numpy as np
-
 
 class Node(object):
     def __init__(self, inbound_nodes=[]):
@@ -20,14 +20,6 @@ class Node(object):
 
 
 class Input(Node):
-    """
-    While it may be strange to consider an input a node when
-    an input is only an individual node in a node, for the sake
-    of simpler code we'll still use Node as the base class.
-
-    Think of Input as collating many individual input nodes into
-    a Node.
-    """
     def __init__(self):
         # An Input node has no inbound nodes,
         # so no need to pass anything to the Node instantiator
@@ -45,18 +37,43 @@ class Linear(Node):
         Node.__init__(self, [X, W, b])
 
     def forward(self):
-        """
-        Set the value of this node to the linear transform output.
-
-        Your code goes here!
-        """
         X = self.inbound_nodes[0].value
         W = self.inbound_nodes[1].value
         b = self.inbound_nodes[2].value
+        self.value = np.dot(X, W) + b
 
-        self.value = np.dot(X,W) + b
-        return self.value
 
+class Sigmoid(Node):
+    """
+    You need to fix the `_sigmoid` and `forward` methods.
+    """
+    def __init__(self, node):
+        Node.__init__(self, [node])
+
+    def _sigmoid(self, x):
+        """
+        This method is separate from `forward` because it
+        will be used later with `backward` as well.
+
+        `x`: A numpy array-like object.
+
+        Return the result of the sigmoid function.
+
+        Your code here!
+        """
+        return 1.0 / (1 + np.exp(-x))
+
+
+    def forward(self):
+        """
+        Set the value of this node to the result of the
+        sigmoid function, `_sigmoid`.
+
+        Your code here!
+        """
+        # This is a dummy value to prevent numpy errors
+        # if you test without changing this method.
+        self.value = self._sigmoid(self.inbound_nodes[0].value)
 
 def topological_sort(feed_dict):
     """
