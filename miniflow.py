@@ -1,28 +1,49 @@
-"""
-Fix the Sigmoid class so that it computes the sigmoid function
-on the forward pass!
-
-Scroll down to get started.
-"""
-
 import numpy as np
 
+
 class Node(object):
+    """
+    Base class for nodes in the network.
+
+    Arguments:
+
+        `inbound_nodes`: A list of nodes with edges into this node.
+    """
     def __init__(self, inbound_nodes=[]):
+        """
+        Node's constructor (runs when the object is instantiated). Sets
+        properties that all nodes need.
+        """
+        # A list of nodes with edges into this node.
         self.inbound_nodes = inbound_nodes
+        # The eventual value of this node. Set by running
+        # the forward() method.
         self.value = None
+        # A list of nodes that this node outputs to.
         self.outbound_nodes = []
+        # Sets this node as an outbound node for all of
+        # this node's inputs.
         for node in inbound_nodes:
             node.outbound_nodes.append(self)
 
-    def forward():
+    def forward(self):
+        """
+        Every node that uses this class as a base class will
+        need to define its own `forward` method.
+        """
         raise NotImplementedError
 
 
 class Input(Node):
+    """
+    A generic input into the network.
+    """
     def __init__(self):
-        # An Input node has no inbound nodes,
-        # so no need to pass anything to the Node instantiator
+        # The base class constructor has to run to set all
+        # the properties here.
+        #
+        # The most important property on an Input is value.
+        # self.value is set during `topological_sort` later.
         Node.__init__(self)
 
     def forward(self):
@@ -31,12 +52,18 @@ class Input(Node):
 
 
 class Linear(Node):
+    """
+    Represents a node that performs a linear transform.
+    """
     def __init__(self, X, W, b):
-        # Notice the ordering of the input nodes passed to the
-        # Node constructor.
+        # The base class (Node) constructor. Weights and bias
+        # are treated like inbound nodes.
         Node.__init__(self, [X, W, b])
 
     def forward(self):
+        """
+        Performs the math behind a linear transform.
+        """
         X = self.inbound_nodes[0].value
         W = self.inbound_nodes[1].value
         b = self.inbound_nodes[2].value
@@ -45,35 +72,56 @@ class Linear(Node):
 
 class Sigmoid(Node):
     """
-    You need to fix the `_sigmoid` and `forward` methods.
+    Represents a node that performs the sigmoid activation function.
     """
     def __init__(self, node):
+        # The base class constructor.
         Node.__init__(self, [node])
 
     def _sigmoid(self, x):
         """
         This method is separate from `forward` because it
-        will be used later with `backward` as well.
+        will be used with `backward` as well.
 
         `x`: A numpy array-like object.
-
-        Return the result of the sigmoid function.
-
-        Your code here!
         """
-        return 1.0 / (1 + np.exp(-x))
-
+        return 1. / (1. + np.exp(-x))
 
     def forward(self):
         """
-        Set the value of this node to the result of the
-        sigmoid function, `_sigmoid`.
-
-        Your code here!
+        Perform the sigmoid function and set the value.
         """
-        # This is a dummy value to prevent numpy errors
-        # if you test without changing this method.
-        self.value = self._sigmoid(self.inbound_nodes[0].value)
+        input_value = self.inbound_nodes[0].value
+        self.value = self._sigmoid(input_value)
+
+
+class MSE(Node):
+    def __init__(self, y, a):
+        """
+        The mean squared error cost function.
+        Should be used as the last node for a network.
+        """
+        # Call the base class' constructor.
+        Node.__init__(self, [y, a])
+
+    def forward(self):
+        """
+        Calculates the mean squared error.
+        """
+        # NOTE: We reshape these to avoid possible matrix/vector broadcast
+        # errors.
+        #
+        # For example, if we subtract an array of shape (3,) from an array of shape
+        # (3,1) we get an array of shape(3,3) as the result when we want
+        # an array of shape (3,1) instead.
+        #
+        # Making both arrays (3,1) insures the result is (3,1) and does
+        # an elementwise subtraction as expected.
+        y = self.inbound_nodes[0].value.reshape(-1, 1)
+        a = self.inbound_nodes[1].value.reshape(-1, 1)
+        # TODO: your code here
+        self.value = (1./len(y))*sum(np.square(y-a))
+
 
 def topological_sort(feed_dict):
     """
@@ -117,19 +165,14 @@ def topological_sort(feed_dict):
     return L
 
 
-def forward_pass(output_node, sorted_nodes):
+def forward_pass(graph):
     """
     Performs a forward pass through a list of sorted Nodes.
 
     Arguments:
 
-        `output_node`: A Node in the graph, should be the output node (have no outgoing edges).
-        `sorted_nodes`: a topologically sorted list of nodes.
-
-    Returns the output node's value
+        `graph`: The result of calling `topological_sort`.
     """
-
-    for n in sorted_nodes:
+    # Forward pass
+    for n in graph:
         n.forward()
-
-    return output_node.value
